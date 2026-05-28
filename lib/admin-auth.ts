@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 
 const COOKIE_NAME = 'ff_admin';
 const MAX_AGE = 60 * 60 * 8; // 8h

@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  serverExternalPackages: ['crypto'],
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**.alicdn.com' },

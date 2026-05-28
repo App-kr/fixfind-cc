@@ -1,5 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifySession, COOKIE_NAME_EXPORT } from '@/lib/admin-auth';
+
+// Cookie name — must match admin-auth.ts
+const COOKIE_NAME_EXPORT = 'ff_admin';
+
+// Lightweight HMAC-SHA256 verify using Web Crypto (Edge-compatible)
+async function verifyEdgeSession(token: string): Promise<boolean> {
+  try {
+    const secret = process.env.ADMIN_SESSION_SECRET;
+    if (!secret) return false;
+    const lastDot = token.lastIndexOf('.');
+    if (lastDot < 0) return false;
+    const payload = token.slice(0, lastDot);
+    const sigHex = token.slice(lastDot + 1);
+    const enc = new TextEncoder();
+    const key = await crypto.subtle.importKey(
+      'raw', enc.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+    );
+    const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(payload));
+    const expected = Array.from(new Uint8Array(sigBuf))
+      .map(b => b.toString(16).padStart(2, '0')).join('');
+    if (sigHex !== expected) return false;
+    const { exp } = JSON.parse(atob(payload));
+    return Date.now() < exp;
+  } catch { return false; }
+}
 
 // Rate limiting: 단순 인메모리 (보조 수단)
 const rateMap = new Map<string, number[]>();
@@ -12,7 +37,7 @@ function isRateLimited(ip: string, limit = 120, windowMs = 60_000): boolean {
   return hits.length > limit;
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0] ?? 'anon';
   const { pathname } = req.nextUrl;
 
@@ -26,7 +51,7 @@ export function middleware(req: NextRequest) {
   // Admin page 보호 (/admin/login 제외)
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
     const token = req.cookies.get(COOKIE_NAME_EXPORT)?.value ?? '';
-    if (!verifySession(token)) {
+    if (!(await verifyEdgeSession(token))) {
       return NextResponse.redirect(new URL('/admin/login', req.url));
     }
   }
@@ -34,7 +59,7 @@ export function middleware(req: NextRequest) {
   // API admin 보호 (/api/admin/login 제외)
   if (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/login')) {
     const token = req.cookies.get(COOKIE_NAME_EXPORT)?.value ?? '';
-    if (!verifySession(token)) {
+    if (!(await verifyEdgeSession(token))) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
   }

@@ -1,4 +1,4 @@
-import crypto from 'node:crypto';
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { makeSessionToken, COOKIE_NAME_EXPORT, MAX_AGE_EXPORT } from '@/lib/admin-auth';
 
