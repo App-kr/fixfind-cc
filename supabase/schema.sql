@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS parts_db (
   model            TEXT        NOT NULL,
   error_code       TEXT,
   solution         TEXT,
+  solution_ko      TEXT,
   part_name        TEXT,
   affiliate_url    TEXT,
   affiliate_price  NUMERIC(10,2),
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS parts_db (
   created_at       TIMESTAMPTZ DEFAULT NOW(),
   updated_at       TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Migration: add solution_ko to existing tables (safe to re-run)
+ALTER TABLE parts_db ADD COLUMN IF NOT EXISTS solution_ko TEXT;
 
 CREATE INDEX IF NOT EXISTS idx_partsdb_brand_model ON parts_db(brand, model);
 CREATE INDEX IF NOT EXISTS idx_partsdb_updated_at  ON parts_db(updated_at DESC);

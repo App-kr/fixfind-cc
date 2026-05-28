@@ -5,7 +5,9 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.alicdn.com' },
       { protocol: 'https', hostname: '**.aliexpress-media.com' },
       { protocol: 'https', hostname: 'ae01.alicdn.com' },
-      { protocol: 'https', hostname: 'ae04.alicdn.com' }
+      { protocol: 'https', hostname: 'ae04.alicdn.com' },
+      { protocol: 'https', hostname: 'upload.wikimedia.org' },
+      { protocol: 'https', hostname: 'images.unsplash.com' }
     ]
   },
   poweredByHeader: false,
