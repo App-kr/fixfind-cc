@@ -14,12 +14,23 @@ export async function PATCH(
 ) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
-  const body = await req.json();
+  const numericId = parseInt(id, 10);
+  if (!Number.isFinite(numericId)) return NextResponse.json({ error: 'Bad id' }, { status: 400 });
+
+  const raw = await req.json();
+  // Allowlist — never let arbitrary fields overwrite slug/id
+  const allowed = ['brand', 'model', 'error_code', 'solution', 'solution_ko',
+                   'part_name', 'affiliate_url', 'affiliate_price'] as const;
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  for (const key of allowed) {
+    if (key in raw) patch[key] = raw[key] ?? null;
+  }
+
   const supabase = getAdminClient();
   const { data, error } = await supabase
     .from('parts_db')
-    .update({ ...body, updated_at: new Date().toISOString() })
-    .eq('id', id)
+    .update(patch)
+    .eq('id', numericId)
     .select()
     .single();
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -33,8 +44,11 @@ export async function DELETE(
 ) {
   if (!checkAuth(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const { id } = await params;
+  const numericId = parseInt(id, 10);
+  if (!Number.isFinite(numericId)) return NextResponse.json({ error: 'Bad id' }, { status: 400 });
+
   const supabase = getAdminClient();
-  const { error } = await supabase.from('parts_db').delete().eq('id', id);
+  const { error } = await supabase.from('parts_db').delete().eq('id', numericId);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

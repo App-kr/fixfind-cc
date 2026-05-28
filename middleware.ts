@@ -45,6 +45,20 @@ export function middleware(req: NextRequest) {
   res.headers.set('X-Frame-Options', 'SAMEORIGIN');
   res.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  res.headers.set('Strict-Transport-Security', 'max-age=63072000; includeSubDomains');
+  res.headers.set(
+    'Content-Security-Policy',
+    [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://pagead2.googlesyndication.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: https: blob:",
+      "connect-src 'self' https://*.supabase.co",
+      "frame-src https://www.google.com",
+      "object-src 'none'",
+      "base-uri 'self'",
+    ].join('; ')
+  );
   return res;
 }
 
