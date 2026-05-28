@@ -73,7 +73,7 @@ export default async function Home() {
             marginBottom: '24px',
           }}
         >
-          Repair Guides · Error Codes · Parts
+          수리 가이드 · 에러코드 · 교체 부품
         </p>
 
         {/* Main headline */}
@@ -104,8 +104,7 @@ export default async function Home() {
             margin: '0 auto',
           }}
         >
-          Step-by-step repair guides, error code explanations,
-          and aftermarket parts — for every device you own.
+          로봇청소기 에러코드 해석부터 부품 교체까지 — 브랜드별 단계별 수리 가이드를 무료로 제공합니다.
         </p>
       </section>
 
@@ -131,10 +130,10 @@ export default async function Home() {
             }}
           >
             {[
-              { num: `${totalArticles}+`, label: 'Repair guides' },
-              { num: '8', label: 'Brands covered' },
-              { num: 'Daily', label: 'New guides added' },
-              { num: '₩0', label: 'Cost to fix yourself' },
+              { num: `${totalArticles}+`, label: '수리 가이드' },
+              { num: '8', label: '브랜드 지원' },
+              { num: 'Daily', label: '매일 추가' },
+              { num: '₩0', label: '직접 수리 비용' },
             ].map(({ num, label }) => (
               <div key={label} style={{ textAlign: 'center' }}>
                 <div
@@ -219,7 +218,7 @@ export default async function Home() {
                           fontWeight: 400,
                         }}
                       >
-                        {items.length} guides
+                        {items.length}개 가이드
                       </span>
                     </div>
                   </ScrollReveal>
@@ -324,7 +323,7 @@ export default async function Home() {
                 marginBottom: '16px',
               }}
             >
-              Can&apos;t find your error?
+              에러 코드를 못 찾으셨나요?
             </h2>
             <p
               style={{
@@ -334,8 +333,7 @@ export default async function Home() {
                 marginBottom: '32px',
               }}
             >
-              New repair guides are added every day. Check back soon
-              or browse all brands above.
+              매일 새로운 수리 가이드가 추가됩니다. 잠시 후 다시 방문하거나 위의 브랜드 목록을 확인해보세요.
             </p>
             <a
               href="/"
@@ -351,7 +349,7 @@ export default async function Home() {
                 letterSpacing: '0.01em',
               }}
             >
-              Browse all brands ↑
+              브랜드 목록으로 ↑
             </a>
           </div>
         </section>

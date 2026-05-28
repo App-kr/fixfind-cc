@@ -9,16 +9,16 @@ const ADSENSE = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: 'fixfind — Robot Vacuum Repair Guides',
+    default: 'fixfind — 로봇청소기 수리 가이드',
     template: '%s · fixfind'
   },
   description:
-    'Fix your robot vacuum fast. Error codes, causes, and step-by-step repair guides for iRobot Roomba, Xiaomi, Ecovacs, Neato, Roborock, Eufy, and more.',
+    '로봇청소기 에러코드 해석, 원인 분석, 단계별 수리 방법을 제공합니다. 아이로봇 룸바, 로보락, 에코백스, 드리미, 나르왈, 삼성, LG 등 전 브랜드 지원.',
   openGraph: {
     type: 'website',
     siteName: 'fixfind',
-    title: 'fixfind — Robot Vacuum Repair Database',
-    description: 'Error codes and repair guides for every robot vacuum brand.'
+    title: 'fixfind — 로봇청소기 수리 가이드',
+    description: '전 브랜드 로봇청소기 에러코드와 수리 가이드'
   },
   robots: { index: true, follow: true }
 };
@@ -31,7 +31,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="ko">
       <head>
         {ADSENSE && (
           <Script
@@ -93,7 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 letterSpacing: '0.01em',
               }}
             >
-              Robot Vacuum Repair
+              로봇청소기 수리 가이드
             </span>
           </div>
         </header>
@@ -114,8 +114,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               Copyright &copy; 2025 fixfind. All rights reserved.
             </p>
             <p style={{ fontSize: '12px', color: '#6e6e73', lineHeight: '1.8' }}>
-              fixfind is an independent repair guide. As an AliExpress Affiliate, we may earn from qualifying purchases.
-              Repair guides are updated daily.
+              fixfind은 독립 수리 가이드 사이트입니다. 본 사이트는 제휴 마케팅을 통해 수익을 얻을 수 있습니다. 수리 가이드는 매일 업데이트됩니다.
             </p>
           </div>
         </footer>
