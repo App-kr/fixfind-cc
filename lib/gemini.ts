@@ -15,22 +15,29 @@ STRICT SELECTION CRITERIA — ALL must be true:
 4. Model name is REAL and verifiable. NO invented model numbers.
 
 TARGET BRANDS & HIGH-SEARCH MODELS (vary — do NOT repeat same model):
-- iRobot Roomba: 614, 650, 655, 675, 690, 770, 780, 860, 880, 890, 960, 980, i3, i7, e5, e6
-- Xiaomi Mi Robot Vacuum: SDJQR02RR (1st gen), SKV4093GL (Pro), STYTJ02YM (Mop)
-- Ecovacs Deebot: N79, N79S, 500, 600, 900, OZMO 930, T8 AIVI, U2 Pro
+- iRobot Roomba: 614, 650, 655, 675, 690, 770, 780, 860, 880, 890, 960, 980, i3, i7, i3+, i7+, e5, e6, j7, j7+
+- Xiaomi Mi Robot Vacuum: SDJQR02RR (1st gen), SKV4093GL (Pro), STYTJ02YM (Mop), B101CN, G10, G10S
+- Ecovacs Deebot: N79, N79S, 500, 600, 900, OZMO 930, T8 AIVI, U2 Pro, X1 Omni, T20 Omni, N8 Pro
 - Neato Botvac: D80, D85, D3 Connected, D5 Connected, D7 Connected
-- Shark IQ: RV1000, AV970, AV2001WD
-- Eufy RoboVac: 11S, 30C, 35C, G30, L70 Hybrid
-- Roborock: S5, S5 Max, S6, S6 Pure, S6 MaxV, S7
-- Samsung POWERbot: SR20M7070WH, VR10M7030WW
+- Shark IQ: RV1000, AV970, AV2001WD, IQ Robot RV1001AE
+- Eufy RoboVac: 11S, 30C, 35C, G30, L70 Hybrid, X8 Pro, G40 Hybrid
+- Roborock: S5, S5 Max, S6, S6 Pure, S6 MaxV, S7, S7 MaxV, Q7 Max, P10, Q Revo
+- Samsung POWERbot: SR20M7070WH, VR10M7030WW, VR30T85513W, Jet Bot AI+ VR50T95735W
+- LG CordZero: R9, A9T ThinQ, R5T, M9 ThinQ (Korea market popular)
+- Dreame: L10 Pro, L20 Ultra, X30 Ultra, D10 Plus, L10s Ultra, Bot L10s Pro, X40 Ultra, Mova L600
+- Narwal: Freo X Ultra, Freo X Plus, T10, Freo Z Ultra (Korea market trending)
 
 HIGH-SEARCH ERROR CODES / SYMPTOMS TO COVER (pick specific ones, vary per batch):
 Error codes: Roomba Error 1/2/5/6/7/8/9/10/14, Charging Error 3/5/6, Roomba "Uh Oh" 1/2 beeps
 Xiaomi errors: Error 1/2/3/4/5/6/7/8/10, "Please clean the main brush"
-Ecovacs: Error 3/4/5/6/7/8/DEEBOT dust box full
-Neato: "My Neato is stuck", brush error, not charging
-Roborock: Error 1/2/3/4/5/6/7/9/10/11/12
-Generic: "[brand] not charging", "[brand] spinning in circles", "[brand] bumper stuck", "[brand] won't dock", "[brand] battery not holding charge", "[brand] side brush not spinning", "[brand] cliff sensor error", "[brand] dustbin full error keeps triggering"
+Ecovacs: Error 3/4/5/6/7/8/DEEBOT dust box full, Omni station not draining, T8 brush stuck
+Neato: "My Neato is stuck", brush error, not charging, laser sensor error
+Roborock: Error 1/2/3/4/5/6/7/9/10/11/12, "Please start the robot on an even surface"
+Samsung: "Empty Dustbin", "Please check the Dust Collector", "Move Robot to flat surface"
+LG CordZero: "Check Filter", "Dust full", base station error, R9 not returning to dock
+Dreame: "Please check the side brush", "Obstacle", "Cliff sensor error", Error 6/7/8/9, L10 Pro not charging
+Narwal: "Self-clean failed", "Water tank empty", "Freo X Ultra spinning in circles", base station clog
+Generic: "[brand] not charging", "[brand] spinning in circles", "[brand] bumper stuck", "[brand] won't dock", "[brand] battery not holding charge", "[brand] side brush not spinning", "[brand] cliff sensor error", "[brand] dustbin full error keeps triggering", "[brand] map lost", "[brand] WiFi disconnected", "[brand] mop not working"
 
 Required JSON shape per entry (all values English):
 {
@@ -38,7 +45,7 @@ Required JSON shape per entry (all values English):
   "model":      "specific model name (e.g. 'Roomba 650', 'Deebot N79S', 'RoboVac 11S')",
   "error_code": "exact error code or symptom people search (e.g. 'Error 5', 'Charging Error 3', 'not charging', 'spinning in circles'); '' only if truly generic",
   "solution":   "3-4 sentence English fix guide. State what the error means, the root cause, exact fix steps, and the replacement part with aftermarket price range in USD (e.g. '$8-15'). Be specific enough that someone can follow without a manual.",
-  "solution_ko": "한국어 수리 가이드. 이 에러가 왜 발생하는지, 어떻게 고치는지, 필요한 부품과 국내 예상 가격(원화)을 자연스러운 한국어로 3-4문장. AI 번역 느낌 없이 실제 수리 블로그처럼.",
+  "solution_ko": "한국어 수리 가이드 3-4문장. 네이버 카페/블로그 말투로: '이 에러는 보통 ~때 발생합니다', '직접 열어보면 ~', '국내에서는 쿠팡이나 알리에서 ~원 정도에 구할 수 있어요'. LG·드리미·나르왈은 국내 사용자 많으니 한국 서비스센터 번호도 언급 가능.",
   "part_name":  "exact AliExpress-searchable part name (e.g. 'Roomba 600 series side brush module', 'Roomba 650 battery 14.4V 3000mAh', 'Deebot N79 side brush', 'robot vacuum cliff sensor board')"
 }
 
@@ -52,6 +59,8 @@ REJECT:
 - Firearms, adult, tobacco, vaping, prescription medical
 - Same brand more than 3 times within this batch
 - Duplicate models from previous known entries: irobot/roomba-650, bose/quietcomfort-35, nintendo/switch-joy-con, canon/eos-rebel-t3i, apple/ipod-classic, irobot/roomba-650, gopro/hero-4-black, logitech/g-pro-wireless, samsung/wf42h5000aw, apple/macbook-pro-15-a1398
+- New brands allowed: Dreame, Narwal, LG — include these freely
+- brand field for LG models: 'LG', for Dreame: 'Dreame', for Narwal: 'Narwal'
 
 Output ONLY a JSON array of ${count} object${count === 1 ? '' : 's'}. No markdown, no prose, no comments.`;
 }

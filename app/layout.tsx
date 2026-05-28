@@ -1,5 +1,6 @@
 import './globals.css';
 import type { Metadata } from 'next';
+import type { Viewport } from 'next';
 import Script from 'next/script';
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://fixfind.cc';
@@ -20,6 +21,12 @@ export const metadata: Metadata = {
     description: 'Error codes and repair guides for every robot vacuum brand.'
   },
   robots: { index: true, follow: true }
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

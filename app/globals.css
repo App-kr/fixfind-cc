@@ -51,3 +51,37 @@ body { background: #ffffff; color: #1d1d1f; }
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ── Mobile responsive ──────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Admin panel: stack sidebar on top */
+  .admin-layout {
+    flex-direction: column !important;
+  }
+  .admin-sidebar {
+    width: 100% !important;
+    height: auto !important;
+    position: static !important;
+    padding: 16px 0 !important;
+  }
+  .admin-main {
+    padding: 20px 16px !important;
+  }
+
+  /* Hero: tighten padding */
+  .hero-section {
+    padding: clamp(40px, 8vw, 80px) 16px !important;
+  }
+
+  /* Stats bar: 2-column grid on mobile */
+  .stats-bar-inner {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px !important;
+  }
+
+  /* Article page breadcrumb: smaller font */
+  nav.text-sm {
+    font-size: 12px;
+  }
+}

@@ -93,6 +93,38 @@ export const SERVICE_CENTERS: Record<string, ServiceCenter> = {
     description_ko: '삼성전자 서비스센터 전국 500개 이상. 삼성 멤버스 앱으로 방문예약 가능. 당일 수리 가능한 경우 많음.',
     description_en: 'Samsung has 500+ service centers across Korea. Book via Samsung Members app for priority same-day service.',
   },
+  LG: {
+    brand: 'LG',
+    phone_kr: '1544-7777',
+    website: 'https://www.lge.co.kr',
+    support_url: 'https://www.lge.co.kr/support/serviceCenter.do',
+    hours_kr: '연중무휴 24시간',
+    hours_en: '24/7',
+    description_ko: 'LG전자 서비스센터 전국 400개 이상. LG 씽큐 앱에서 온라인 접수 시 방문 예약 없이 출장 수리 가능. 코드제로 A9S 등 무선청소기도 동일 번호로 접수.',
+    description_en: 'LG has 400+ service centers across Korea. Book via the LG ThinQ app for door-to-door repair service without an appointment.',
+  },
+  Dreame: {
+    brand: 'Dreame',
+    phone_kr: '1644-1758',
+    website: 'https://www.dreametech.com/kr',
+    support_url: 'https://www.dreametech.com/kr/pages/support',
+    hours_kr: '평일 09:00~18:00',
+    hours_en: 'Mon–Fri 9AM–6PM KST',
+    email: 'support@dreametech.com',
+    description_ko: '드리미 한국 공식 AS. 콜센터 접수 후 택배 수거 수리 가능. 1년 무상보증. 로봇청소기·물걸레·진공청소기 통합 접수.',
+    description_en: 'Dreame Korea offers mail-in repair with free pickup. 1-year warranty. Contact via phone or email for service requests.',
+  },
+  Narwal: {
+    brand: 'Narwal',
+    phone_kr: '1800-5558',
+    website: 'https://www.narwal.com/kr',
+    support_url: 'https://www.narwal.com/kr/pages/support',
+    hours_kr: '평일 09:00~18:00',
+    hours_en: 'Mon–Fri 9AM–6PM KST',
+    email: 'kr-support@narwal.com',
+    description_ko: '나르왈 한국 공식 AS. 물걸레 자동 세척 시스템 전문 수리. 접수 후 택배 수거 서비스. 보증기간 1년 (세척 스테이션 포함).',
+    description_en: 'Narwal Korea specializes in mop-auto-cleaning robot service. Pickup repair service available. 1-year warranty including the cleaning station.',
+  },
 };
 
 export function getServiceCenter(brand: string): ServiceCenter | null {
