@@ -1,0 +1,17 @@
+node_modules/
+.next/
+out/
+.vercel
+.turbo
+next-env.d.ts
+
+# === Secrets — Zero-Leak Policy ===
+.env
+.env.*
+!.env.local.example
+
+# logs
+*.log
+.DS_Store
+
+.vercel
