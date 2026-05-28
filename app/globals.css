@@ -3,4 +3,13 @@
 @tailwind utilities;
 
 html { scroll-behavior: smooth; }
-body { background: #fafafa; color: #0f172a; }
+body { background: #ffffff; color: #1d1d1f; }
+
+/* Apple-style card hover animation */
+.repair-card {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.repair-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12) !important;
+}
