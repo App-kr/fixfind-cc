@@ -20,7 +20,7 @@ function authorize(req: NextRequest): boolean {
 }
 
 async function processEntry(entry: RepairEntry, stats: { upserted: number; errors: string[] }) {
-  const slug = makeSlug(entry.brand, entry.model);
+  const slug = makeSlug(entry.brand, entry.model, entry.error_code);
   if (!/^[a-z0-9-]+\/[a-z0-9-]+$/.test(slug)) {
     stats.errors.push(`bad slug: ${slug}`);
     return;

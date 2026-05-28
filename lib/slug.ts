@@ -7,8 +7,26 @@ export function normalizeSegment(s: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-export function makeSlug(brand: string, model: string): string {
-  return `${normalizeSegment(brand)}/${normalizeSegment(model)}`;
+/**
+ * Slug = brand/model[-error-slug]
+ * e.g.  irobot/roomba-675-error-5
+ *        irobot/roomba-675-not-charging
+ *        irobot/roomba-675          ← when no error_code
+ *
+ * This lets each (model, error) pair get its own SEO page.
+ */
+export function makeSlug(brand: string, model: string, errorCode?: string): string {
+  const brandSeg = normalizeSegment(brand);
+  const modelSeg = normalizeSegment(model);
+  if (!errorCode || !errorCode.trim()) {
+    return `${brandSeg}/${modelSeg}`;
+  }
+  const errSeg = normalizeSegment(errorCode);
+  // Avoid double-stamping if model already ends with the same error suffix
+  if (modelSeg.endsWith(errSeg)) {
+    return `${brandSeg}/${modelSeg}`;
+  }
+  return `${brandSeg}/${modelSeg}-${errSeg}`;
 }
 
 export function parseSlug(slug: string): { brand: string; model: string } | null {

@@ -86,7 +86,7 @@ async function seedBatch(batchNum, count = 10) {
   });
   const body = await res.json();
   if (body.ok) {
-    console.log(`  ✅ upserted=${body.upserted_count}/${body.entries_count}`);
+    console.log(`  ✅ upserted=${body.upserted}/${body.entries} entries`);
     if (body.errors?.length) console.log(`  ⚠️  errors:`, body.errors.slice(0, 3));
   } else {
     console.error(`  ❌ failed:`, body.error || JSON.stringify(body).slice(0, 200));
