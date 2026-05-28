@@ -28,7 +28,7 @@ async function getRecent(): Promise<Row[]> {
   }
 }
 
-const BRAND_ORDER = ['iRobot', 'Roborock', 'Ecovacs', 'Xiaomi', 'Eufy', 'Shark', 'Neato', 'Samsung'];
+const BRAND_ORDER = ['Roborock', 'iRobot', 'Ecovacs', 'Dreame', 'Narwal', 'Samsung', 'LG', 'Xiaomi', 'Eufy', 'Shark', 'Neato'];
 
 export default async function Home() {
   const rows = await getRecent();
