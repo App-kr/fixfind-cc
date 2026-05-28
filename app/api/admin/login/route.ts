@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: MAX_AGE_EXPORT,
-    path: '/admin',
+    path: '/',  // '/' so cookie is sent to /api/admin/* routes too
   });
   return res;
 }

@@ -3,6 +3,6 @@ import { COOKIE_NAME_EXPORT } from '@/lib/admin-auth';
 
 export async function POST() {
   const res = NextResponse.json({ ok: true });
-  res.cookies.delete(COOKIE_NAME_EXPORT);
+  res.cookies.set(COOKIE_NAME_EXPORT, '', { maxAge: 0, path: '/' });
   return res;
 }

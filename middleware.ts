@@ -23,11 +23,19 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Admin 보호 (/admin/login 제외)
+  // Admin page 보호 (/admin/login 제외)
   if (pathname.startsWith('/admin') && !pathname.startsWith('/admin/login')) {
     const token = req.cookies.get(COOKIE_NAME_EXPORT)?.value ?? '';
     if (!verifySession(token)) {
       return NextResponse.redirect(new URL('/admin/login', req.url));
+    }
+  }
+
+  // API admin 보호 (/api/admin/login 제외)
+  if (pathname.startsWith('/api/admin') && !pathname.startsWith('/api/admin/login')) {
+    const token = req.cookies.get(COOKIE_NAME_EXPORT)?.value ?? '';
+    if (!verifySession(token)) {
+      return new NextResponse('Unauthorized', { status: 401 });
     }
   }
 
