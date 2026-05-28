@@ -1,5 +1,6 @@
 import { getPublicClient } from '@/lib/supabase';
 import AdSlot from '@/components/AdSlot';
+import ScrollReveal from '@/components/ScrollReveal';
 
 export const revalidate = 3600;
 
@@ -20,7 +21,7 @@ async function getRecent(): Promise<Row[]> {
       .from('parts_db')
       .select('id, brand, model, error_code, part_name, slug, updated_at')
       .order('updated_at', { ascending: false })
-      .limit(100);
+      .limit(200);
     return (data || []) as Row[];
   } catch {
     return [];
@@ -38,7 +39,6 @@ export default async function Home() {
     byBrand.set(r.brand, arr);
   }
 
-  // Sort brands by preferred order, then alphabetically
   const sortedBrands = [...byBrand.keys()].sort((a, b) => {
     const ai = BRAND_ORDER.indexOf(a);
     const bi = BRAND_ORDER.indexOf(b);
@@ -48,80 +48,137 @@ export default async function Home() {
     return ai - bi;
   });
 
+  const totalArticles = rows.length;
+
   return (
     <main>
-      {/* Dark hero section */}
+      {/* ── HERO — all white, giant black type ─────────────────────── */}
       <section
         style={{
-          backgroundColor: '#1d1d1f',
-          color: '#f5f5f7',
-          padding: '100px 22px 80px',
+          backgroundColor: '#ffffff',
+          padding: 'clamp(80px, 14vw, 160px) 22px clamp(60px, 10vw, 120px)',
           textAlign: 'center',
+          overflow: 'hidden',
         }}
       >
-        <div style={{ maxWidth: '780px', margin: '0 auto' }}>
-          <h1
-            style={{
-              fontSize: 'clamp(48px, 8vw, 80px)',
-              fontWeight: 700,
-              letterSpacing: '-0.025em',
-              lineHeight: 1.05,
-              color: '#f5f5f7',
-              marginBottom: '20px',
-            }}
-          >
-            Fix your robot vacuum.
-          </h1>
-          <p
-            style={{
-              fontSize: 'clamp(19px, 2.5vw, 24px)',
-              fontWeight: 400,
-              color: '#a1a1a6',
-              letterSpacing: '0.01em',
-              lineHeight: 1.5,
-              marginBottom: '32px',
-            }}
-          >
-            Error codes, causes, and step-by-step repair guides.
-          </p>
-          <p
-            style={{
-              fontSize: '15px',
-              color: '#6e6e73',
-              letterSpacing: '0.04em',
-              fontWeight: 400,
-            }}
-          >
-            Roomba &nbsp;&middot;&nbsp; Roborock &nbsp;&middot;&nbsp; Ecovacs &nbsp;&middot;&nbsp; Neato
-            &nbsp;&middot;&nbsp; Eufy &nbsp;&middot;&nbsp; Shark &nbsp;&middot;&nbsp; Xiaomi
-          </p>
-        </div>
+        {/* Eyebrow */}
+        <p
+          className="hero-line hero-line-1"
+          style={{
+            fontSize: '13px',
+            fontWeight: 600,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: '#6e6e73',
+            marginBottom: '24px',
+          }}
+        >
+          Repair Guides · Error Codes · Parts
+        </p>
+
+        {/* Main headline */}
+        <h1
+          className="hero-line hero-line-2"
+          style={{
+            fontSize: 'clamp(64px, 13vw, 148px)',
+            fontWeight: 800,
+            letterSpacing: '-0.04em',
+            lineHeight: 0.95,
+            color: '#1d1d1f',
+            margin: '0 auto 28px',
+            maxWidth: '960px',
+          }}
+        >
+          Fix&nbsp;whatever.
+        </h1>
+
+        {/* Sub */}
+        <p
+          className="hero-line hero-line-3"
+          style={{
+            fontSize: 'clamp(17px, 2.2vw, 22px)',
+            fontWeight: 400,
+            color: '#6e6e73',
+            lineHeight: 1.6,
+            maxWidth: '560px',
+            margin: '0 auto',
+          }}
+        >
+          Step-by-step repair guides, error code explanations,
+          and aftermarket parts — for every device you own.
+        </p>
       </section>
 
-      {/* Ad slot below hero */}
-      <div style={{ maxWidth: '980px', margin: '0 auto', padding: '32px 22px 0' }}>
-        <AdSlot slot="home-top" className="mb-8 h-24" />
-      </div>
+      {/* ── STATS BAR ──────────────────────────────────────────────── */}
+      <ScrollReveal>
+        <section
+          style={{
+            borderTop: '0.5px solid #e5e5ea',
+            borderBottom: '0.5px solid #e5e5ea',
+            backgroundColor: '#f5f5f7',
+            padding: '28px 22px',
+          }}
+        >
+          <div
+            style={{
+              maxWidth: '980px',
+              margin: '0 auto',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 'clamp(24px, 6vw, 72px)',
+              flexWrap: 'wrap',
+            }}
+          >
+            {[
+              { num: `${totalArticles}+`, label: 'Repair guides' },
+              { num: '8', label: 'Brands covered' },
+              { num: 'Daily', label: 'New guides added' },
+              { num: '₩0', label: 'Cost to fix yourself' },
+            ].map(({ num, label }) => (
+              <div key={label} style={{ textAlign: 'center' }}>
+                <div
+                  style={{
+                    fontSize: 'clamp(28px, 4vw, 40px)',
+                    fontWeight: 700,
+                    color: '#1d1d1f',
+                    letterSpacing: '-0.02em',
+                    lineHeight: 1,
+                    marginBottom: '4px',
+                  }}
+                >
+                  {num}
+                </div>
+                <div style={{ fontSize: '13px', color: '#6e6e73', fontWeight: 400 }}>
+                  {label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      </ScrollReveal>
 
-      {/* Brand sections */}
+      <AdSlot slot="home-top" className="my-8" />
+
+      {/* ── BRAND SECTIONS ─────────────────────────────────────────── */}
       {rows.length === 0 ? (
         <div
           style={{
             maxWidth: '980px',
-            margin: '60px auto',
+            margin: '80px auto',
             padding: '80px 22px',
             textAlign: 'center',
             color: '#6e6e73',
-            fontSize: '17px',
           }}
         >
           Loading repair database...
         </div>
       ) : (
-        <div>
+        <>
           {sortedBrands.map((brand, sectionIndex) => {
             const items = byBrand.get(brand)!;
             const isAlt = sectionIndex % 2 === 1;
+
             return (
               <section
                 key={brand}
@@ -131,163 +188,174 @@ export default async function Home() {
                   style={{
                     maxWidth: '980px',
                     margin: '0 auto',
-                    padding: '64px 22px',
+                    padding: 'clamp(48px, 6vw, 72px) 22px',
                   }}
                 >
-                  {/* Brand header */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'baseline',
-                      gap: '12px',
-                      marginBottom: '32px',
-                    }}
-                  >
-                    <h2
+                  {/* Brand heading */}
+                  <ScrollReveal delay={0}>
+                    <div
                       style={{
-                        fontSize: '32px',
-                        fontWeight: 700,
-                        letterSpacing: '-0.02em',
-                        color: '#1d1d1f',
-                        margin: 0,
+                        display: 'flex',
+                        alignItems: 'baseline',
+                        gap: '10px',
+                        marginBottom: '28px',
                       }}
                     >
-                      {brand}
-                    </h2>
-                    <span
-                      style={{
-                        fontSize: '14px',
-                        color: '#6e6e73',
-                        fontWeight: 400,
-                      }}
-                    >
-                      {items.length} guides
-                    </span>
-                  </div>
+                      <h2
+                        style={{
+                          fontSize: 'clamp(26px, 4vw, 36px)',
+                          fontWeight: 700,
+                          letterSpacing: '-0.025em',
+                          color: '#1d1d1f',
+                          margin: 0,
+                        }}
+                      >
+                        {brand}
+                      </h2>
+                      <span
+                        style={{
+                          fontSize: '14px',
+                          color: '#6e6e73',
+                          fontWeight: 400,
+                        }}
+                      >
+                        {items.length} guides
+                      </span>
+                    </div>
+                  </ScrollReveal>
 
-                  {/* Cards grid */}
+                  {/* Cards */}
                   <div
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-                      gap: '16px',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+                      gap: '14px',
                     }}
                   >
-                    {items.map((r) => (
-                      <a
+                    {items.map((r, cardIndex) => (
+                      <ScrollReveal
                         key={r.id}
-                        href={`/${r.slug}`}
-                        className="repair-card"
-                        style={{
-                          display: 'block',
-                          backgroundColor: '#ffffff',
-                          borderRadius: '18px',
-                          padding: '24px',
-                          boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                          textDecoration: 'none',
-                          color: 'inherit',
-                        }}
+                        delay={Math.min(cardIndex, 5) * 60}
                       >
-                        <div
+                        <a
+                          href={`/${r.slug}`}
+                          className="repair-card"
                           style={{
-                            fontSize: '15px',
-                            fontWeight: 600,
-                            color: '#1d1d1f',
-                            lineHeight: 1.4,
-                            marginBottom: r.error_code || r.part_name ? '10px' : 0,
+                            display: 'block',
+                            backgroundColor: isAlt ? '#ffffff' : '#f5f5f7',
+                            borderRadius: '16px',
+                            padding: '22px 20px',
+                            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+                            textDecoration: 'none',
+                            color: 'inherit',
+                            height: '100%',
                           }}
                         >
-                          {r.model}
-                        </div>
-                        {r.error_code && (
-                          <span
-                            style={{
-                              display: 'inline-block',
-                              backgroundColor: '#fff2f2',
-                              color: '#d70015',
-                              fontSize: '12px',
-                              fontWeight: 600,
-                              padding: '2px 8px',
-                              borderRadius: '20px',
-                              letterSpacing: '0.02em',
-                              marginBottom: r.part_name ? '8px' : 0,
-                            }}
-                          >
-                            {r.error_code}
-                          </span>
-                        )}
-                        {r.part_name && (
                           <div
                             style={{
-                              fontSize: '13px',
-                              color: '#6e6e73',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
+                              fontSize: '15px',
+                              fontWeight: 600,
+                              color: '#1d1d1f',
+                              lineHeight: 1.35,
+                              marginBottom: r.error_code || r.part_name ? '10px' : 0,
                             }}
                           >
-                            {r.part_name}
+                            {r.model}
                           </div>
-                        )}
-                      </a>
+                          {r.error_code && (
+                            <span
+                              style={{
+                                display: 'inline-block',
+                                backgroundColor: '#fff0f0',
+                                color: '#d70015',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '3px 9px',
+                                borderRadius: '20px',
+                                letterSpacing: '0.03em',
+                                marginBottom: r.part_name ? '8px' : 0,
+                              }}
+                            >
+                              {r.error_code}
+                            </span>
+                          )}
+                          {r.part_name && (
+                            <div
+                              style={{
+                                fontSize: '12px',
+                                color: '#6e6e73',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                whiteSpace: 'nowrap',
+                                marginTop: '6px',
+                              }}
+                            >
+                              {r.part_name}
+                            </div>
+                          )}
+                        </a>
+                      </ScrollReveal>
                     ))}
                   </div>
                 </div>
               </section>
             );
           })}
-        </div>
+        </>
       )}
 
-      {/* Bottom CTA strip */}
-      <section
-        style={{
-          backgroundColor: '#1d1d1f',
-          padding: '80px 22px',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ maxWidth: '600px', margin: '0 auto' }}>
-          <h2
-            style={{
-              fontSize: '36px',
-              fontWeight: 700,
-              color: '#f5f5f7',
-              letterSpacing: '-0.02em',
-              marginBottom: '16px',
-            }}
-          >
-            Can&apos;t find your error code?
-          </h2>
-          <p
-            style={{
-              fontSize: '17px',
-              color: '#a1a1a6',
-              lineHeight: 1.6,
-              marginBottom: '32px',
-            }}
-          >
-            Search by brand, model, or error code above.
-            New repair guides are added daily.
-          </p>
-          <a
-            href="/"
-            style={{
-              display: 'inline-block',
-              backgroundColor: '#0071e3',
-              color: '#ffffff',
-              fontSize: '17px',
-              fontWeight: 500,
-              padding: '12px 28px',
-              borderRadius: '980px',
-              textDecoration: 'none',
-              letterSpacing: '0.01em',
-            }}
-          >
-            Browse all brands
-          </a>
-        </div>
-      </section>
+      {/* ── BOTTOM CTA ─────────────────────────────────────────────── */}
+      <ScrollReveal>
+        <section
+          style={{
+            backgroundColor: '#1d1d1f',
+            padding: 'clamp(64px, 8vw, 100px) 22px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ maxWidth: '560px', margin: '0 auto' }}>
+            <h2
+              style={{
+                fontSize: 'clamp(32px, 5vw, 48px)',
+                fontWeight: 700,
+                color: '#f5f5f7',
+                letterSpacing: '-0.025em',
+                lineHeight: 1.1,
+                marginBottom: '16px',
+              }}
+            >
+              Can&apos;t find your error?
+            </h2>
+            <p
+              style={{
+                fontSize: '17px',
+                color: '#a1a1a6',
+                lineHeight: 1.6,
+                marginBottom: '32px',
+              }}
+            >
+              New repair guides are added every day. Check back soon
+              or browse all brands above.
+            </p>
+            <a
+              href="/"
+              style={{
+                display: 'inline-block',
+                backgroundColor: '#0071e3',
+                color: '#ffffff',
+                fontSize: '15px',
+                fontWeight: 500,
+                padding: '12px 26px',
+                borderRadius: '980px',
+                textDecoration: 'none',
+                letterSpacing: '0.01em',
+              }}
+            >
+              Browse all brands ↑
+            </a>
+          </div>
+        </section>
+      </ScrollReveal>
     </main>
   );
 }
