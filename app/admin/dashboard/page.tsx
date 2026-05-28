@@ -10,11 +10,24 @@ export default async function AdminDashboard() {
   if (!verifySession(token)) redirect('/admin/login');
 
   const supabase = getAdminClient();
-  const { data: posts, count } = await supabase
-    .from('parts_db')
-    .select('id, brand, model, error_code, part_name, slug, updated_at', { count: 'exact' })
-    .order('updated_at', { ascending: false })
-    .limit(50);
 
-  return <AdminDashboardClient initialPosts={posts ?? []} totalCount={count ?? 0} />;
+  const [postsRes, missingRes] = await Promise.all([
+    supabase
+      .from('parts_db')
+      .select('id, brand, model, error_code, part_name, slug, updated_at', { count: 'exact' })
+      .order('updated_at', { ascending: false })
+      .limit(50),
+    supabase
+      .from('parts_db')
+      .select('id', { count: 'exact', head: true })
+      .is('solution_ko', null),
+  ]);
+
+  return (
+    <AdminDashboardClient
+      initialPosts={postsRes.data ?? []}
+      totalCount={postsRes.count ?? 0}
+      missingKoCount={missingRes.count ?? 0}
+    />
+  );
 }

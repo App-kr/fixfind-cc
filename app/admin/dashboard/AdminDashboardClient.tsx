@@ -14,20 +14,27 @@ type Post = {
 
 const SIDEBAR_W = 220;
 const BRANDS = [
-  '전체', 'iRobot', 'Roborock', 'Ecovacs', 'Dreame', 'Narwal',
-  'LG', 'Samsung', 'Xiaomi', 'Eufy', 'Shark', 'Neato',
+  '전체', 'Roborock', 'iRobot', 'Ecovacs', 'Dreame', 'Narwal',
+  'Samsung', 'LG', 'Xiaomi', 'Eufy', 'Shark', 'Neato',
 ];
 
 export default function AdminDashboardClient({
   initialPosts,
   totalCount,
+  missingKoCount,
 }: {
   initialPosts: Post[];
   totalCount: number;
+  missingKoCount: number;
 }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [filterBrand, setFilterBrand] = useState('전체');
   const router = useRouter();
+
+  // Korean generation state
+  const [koStatus, setKoStatus] = useState<'idle' | 'running' | 'done' | 'error'>('idle');
+  const [koLog, setKoLog] = useState<string[]>([]);
+  const [koMissing, setKoMissing] = useState(missingKoCount);
 
   const filtered = filterBrand === '전체' ? posts : posts.filter(p => p.brand === filterBrand);
 
@@ -44,6 +51,53 @@ export default function AdminDashboardClient({
   async function handleLogout() {
     await fetch('/api/admin/logout', { method: 'POST' });
     router.push('/admin/login');
+  }
+
+  async function handleFillKo(force = false) {
+    setKoStatus('running');
+    setKoLog([]);
+    let totalProcessed = 0;
+    let round = 1;
+
+    try {
+      while (true) {
+        setKoLog(prev => [...prev, `라운드 ${round} 처리 중...`]);
+        const res = await fetch('/api/admin/fill-ko', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ count: 20, force }),
+        });
+        const json = await res.json();
+
+        if (!res.ok) {
+          setKoLog(prev => [...prev, `❌ 오류: ${json.error ?? res.status}`]);
+          setKoStatus('error');
+          return;
+        }
+
+        const p = json.processed ?? 0;
+        const f = json.failed ?? 0;
+        totalProcessed += p;
+
+        setKoLog(prev => [
+          ...prev,
+          `라운드 ${round}: ${p}개 생성${f > 0 ? `, ${f}개 실패` : ''} (누적 ${totalProcessed}개)`,
+        ]);
+
+        // Done when nothing left to process
+        if (p === 0) break;
+        round++;
+        // Small pause between rounds
+        await new Promise(r => setTimeout(r, 1000));
+      }
+
+      setKoLog(prev => [...prev, `✅ 완료 — 총 ${totalProcessed}개 한국어 가이드 생성`]);
+      setKoMissing(0);
+      setKoStatus('done');
+    } catch (e: any) {
+      setKoLog(prev => [...prev, `❌ 네트워크 오류: ${e?.message}`]);
+      setKoStatus('error');
+    }
   }
 
   const navItems = [
@@ -137,6 +191,91 @@ export default function AdminDashboardClient({
           >
             + 새 게시물
           </a>
+        </div>
+
+        {/* ── 한국어 일괄 생성 패널 ──────────────────────────── */}
+        <div
+          style={{
+            backgroundColor: '#fff',
+            borderRadius: '16px',
+            padding: '20px 24px',
+            marginBottom: '24px',
+            boxShadow: '0 1px 4px rgba(0,0,0,0.06)',
+            borderLeft: '4px solid #0071e3',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
+            <div>
+              <div style={{ fontSize: '15px', fontWeight: 700, color: '#1d1d1f' }}>
+                🇰🇷 한국어 가이드 일괄 생성
+              </div>
+              <div style={{ fontSize: '13px', color: '#6e6e73', marginTop: '3px' }}>
+                {koMissing > 0
+                  ? `한국어 미생성 ${koMissing}개 — Gemini로 자동 작성`
+                  : '모든 게시물에 한국어 가이드가 있습니다 ✅'}
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => handleFillKo(false)}
+                disabled={koStatus === 'running' || koMissing === 0}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '980px',
+                  backgroundColor: koMissing === 0 ? '#e5e5ea' : '#0071e3',
+                  color: koMissing === 0 ? '#999' : '#fff',
+                  border: 'none',
+                  cursor: koStatus === 'running' || koMissing === 0 ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  opacity: koStatus === 'running' ? 0.6 : 1,
+                }}
+              >
+                {koStatus === 'running' ? '생성 중...' : '미생성 채우기'}
+              </button>
+              <button
+                onClick={() => handleFillKo(true)}
+                disabled={koStatus === 'running'}
+                style={{
+                  padding: '9px 20px',
+                  borderRadius: '980px',
+                  backgroundColor: '#3a3a3c',
+                  color: '#fff',
+                  border: 'none',
+                  cursor: koStatus === 'running' ? 'not-allowed' : 'pointer',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  fontFamily: 'inherit',
+                  opacity: koStatus === 'running' ? 0.6 : 1,
+                }}
+              >
+                전체 덮어쓰기
+              </button>
+            </div>
+          </div>
+
+          {/* Log output */}
+          {koLog.length > 0 && (
+            <div
+              style={{
+                marginTop: '14px',
+                backgroundColor: '#1d1d1f',
+                borderRadius: '10px',
+                padding: '14px 16px',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                color: '#e5e5ea',
+                lineHeight: 1.7,
+                maxHeight: '160px',
+                overflowY: 'auto',
+              }}
+            >
+              {koLog.map((line, i) => (
+                <div key={i}>{line}</div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Brand filter */}
