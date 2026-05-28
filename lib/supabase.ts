@@ -36,9 +36,20 @@ export type PartRow = {
 
 export async function upsertPart(row: PartRow): Promise<void> {
   const supabase = getAdminClient();
-  const { error } = await supabase
+  const payload = { ...row, updated_at: new Date().toISOString() };
+  let { error } = await supabase
     .from('parts_db')
-    .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: 'slug' });
+    .upsert(payload, { onConflict: 'slug' });
+
+  // Graceful fallback: if solution_ko column doesn't exist yet, retry without it
+  if (error && error.message?.includes('solution_ko')) {
+    const { solution_ko: _drop, ...payloadWithout } = payload;
+    const fallback = await supabase
+      .from('parts_db')
+      .upsert(payloadWithout, { onConflict: 'slug' });
+    error = fallback.error;
+  }
+
   if (error) throw new Error(`upsertPart failed: ${error.message}`);
 }
 
