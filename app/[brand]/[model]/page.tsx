@@ -301,19 +301,26 @@ export default async function Page({ params }: { params: Promise<Params> }) {
       )}
 
       {/* Korean solution */}
-      {hasKorean ? (
-        <section className="mb-8 rounded-2xl bg-gray-50 border border-gray-200 p-6">
-          <h3 className="text-lg font-black text-gray-900 mb-4">수리 방법</h3>
-          <p className="text-gray-900 leading-relaxed" style={{ fontSize: '16px', lineHeight: '1.9' }}>
+      <section className="mb-8 rounded-2xl bg-gray-50 border border-gray-200 p-6">
+        <h3 className="text-lg font-black text-gray-900 mb-4">수리 방법</h3>
+        {hasKorean ? (
+          <p className="text-gray-900 leading-relaxed whitespace-pre-line" style={{ fontSize: '16px', lineHeight: '1.9' }}>
             {row.solution_ko}
           </p>
-        </section>
-      ) : (
-        <section className="mb-8 rounded-2xl bg-gray-50 border border-gray-200 p-6">
-          <h3 className="text-lg font-black text-gray-900 mb-4">수리 방법</h3>
-          <p className="text-gray-500 text-sm">한국어 가이드 준비 중입니다. 위 영어 가이드를 참고해 주세요.</p>
-        </section>
-      )}
+        ) : (
+          /* 한국어 가이드 생성 전 — 영어 단계별 가이드를 번호 순으로 표시 */
+          <ol className="space-y-3">
+            {enSteps.map((step, i) => (
+              <li key={i} className="flex gap-3 items-start">
+                <span className="flex-shrink-0 w-7 h-7 rounded-full bg-blue-600 text-white text-sm font-bold flex items-center justify-center mt-0.5">
+                  {i + 1}
+                </span>
+                <p className="text-gray-800 leading-relaxed" style={{ fontSize: '15px' }}>{step}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
 
       {/* Korean FAQ */}
       <section className="mb-8">
