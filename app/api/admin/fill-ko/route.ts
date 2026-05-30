@@ -10,6 +10,10 @@ function checkAuth(req: NextRequest): boolean {
   return verifySession(token) !== null;
 }
 
+// 무료 모델 우선순위 — 각 모델은 별도 일일 쿼터 버킷 → 429 시 다음 모델로 회전
+// gemini-2.5-flash 는 이 키에서 일일 20건 한도라 마지막에 배치
+const GEMINI_MODELS = ['gemini-2.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash'];
+
 async function generateKoreanSolution(brand: string, model: string, errorCode: string, solution: string): Promise<string> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY missing');
@@ -35,21 +39,32 @@ async function generateKoreanSolution(brand: string, model: string, errorCode: s
 
 한국어 수리 가이드:`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.8, maxOutputTokens: 700 },
-      }),
+  let lastErr = '';
+  for (const gModel of GEMINI_MODELS) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          // thinkingBudget:0 → 내부 추론 토큰 낭비 방지 (빈응답 차단)
+          generationConfig: { temperature: 0.8, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      }
+    );
+    if (res.ok) {
+      const j = await res.json();
+      const text = j?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text.trim();
+      lastErr = 'empty response';
+      continue;
     }
-  );
-  const j = await res.json();
-  const text = j?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Gemini returned empty');
-  return text.trim();
+    lastErr = `${res.status}`;
+    if (res.status === 429) continue; // 일일/분당 한도 → 다음 모델 버킷
+    throw new Error(`Gemini ${res.status}`);
+  }
+  throw new Error(`Gemini all models exhausted (${lastErr})`);
 }
 
 export async function POST(req: NextRequest) {
