@@ -37,6 +37,8 @@ const FORCE = process.argv.includes('--force');
 const DRY   = process.argv.includes('--dry');
 const LIMIT_ARG = process.argv.find(a => a.startsWith('--limit='));
 const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.split('=')[1], 10) : 0;
+const SHORT = process.argv.includes('--short'); // 짧거나 잘린 가이드(<200자)도 재생성
+const MIN_LEN = 200;
 
 // 무료 모델 우선순위 — 각 모델은 별도 일일 쿼터 버킷 → 429(일일한도) 시 다음 모델로 회전
 // gemini-2.5-flash 는 이 키에서 일일 20건 한도라 마지막에 배치
@@ -157,7 +159,7 @@ if (!colOk) process.exit(1);
 
 // 처리할 게시물 조회
 const selectCols = 'id,brand,model,error_code,solution,solution_ko';
-const sbQuery = FORCE
+const sbQuery = (FORCE || SHORT)
   ? `parts_db?select=${selectCols}&order=id.asc&limit=300`
   : `parts_db?select=${selectCols}&solution_ko=is.null&order=id.asc&limit=300`;
 
@@ -167,7 +169,12 @@ if (!Array.isArray(articles)) {
   process.exit(1);
 }
 
-const base = articles.filter(a => FORCE || !a.solution_ko);
+const base = articles.filter(a => {
+  if (FORCE) return true;
+  if (!a.solution_ko) return true;
+  if (SHORT && a.solution_ko.length < MIN_LEN) return true; // 잘린 가이드 재생성
+  return false;
+});
 const todo = LIMIT > 0 ? base.slice(0, LIMIT) : base;
 
 console.log(`전체 조회: ${articles.length}개 / 처리 예정: ${todo.length}개${LIMIT > 0 ? ` (--limit=${LIMIT})` : ''}\n`);

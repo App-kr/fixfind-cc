@@ -270,7 +270,7 @@ export default async function Page({ params }: { params: Promise<Params> }) {
                className="mx-auto mb-4 max-h-40 rounded-xl object-contain" />
         )}
         {row.part_name && <p className="text-gray-900 font-semibold mb-3 text-sm">{row.part_name}</p>}
-        <AffiliateCTA href={row.affiliate_url} price={row.affiliate_price} partName={row.part_name || 'part'} />
+        <AffiliateCTA href={row.affiliate_url} price={row.affiliate_price} partName={row.part_name || 'part'} searchKeyword={`${row.brand} ${row.model} ${row.part_name || ''}`} />
       </section>
 
       {/* Ad slot — admin visible only */}
