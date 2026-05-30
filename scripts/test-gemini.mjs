@@ -1,6 +1,6 @@
 /**
- * test-gemini.mjs — GEMINI_API_KEY 단일요청 진단 (키 노출 없음)
- * 각 모델에 1회만 요청 → HTTP status + 에러 사유만 출력
+ * test-gemini.mjs — 후보 모델별 단일요청 진단 (키 노출 없음)
+ * 어떤 모델이 지금 당장 무료로 응답하는지 확인
  */
 import { readFileSync } from 'fs';
 import { resolve, dirname } from 'path';
@@ -24,36 +24,29 @@ function loadEnv() {
 const env = loadEnv();
 const KEY = env.GEMINI_API_KEY;
 if (!KEY) { console.error('GEMINI_API_KEY 없음'); process.exit(1); }
-console.log(`키 확인: prefix=${KEY.slice(0, 6)} length=${KEY.length}\n`);
 
-// 1) 모델 목록 (키 유효성 확인)
-const listRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${KEY}`);
-console.log(`[models.list] HTTP ${listRes.status}`);
-if (listRes.ok) {
-  const j = await listRes.json();
-  const names = (j.models || []).map(m => m.name.replace('models/', '')).filter(n => n.includes('flash'));
-  console.log('  flash 계열:', names.join(', '), '\n');
-} else {
-  console.log('  ', (await listRes.text()).slice(0, 200), '\n');
-}
-
-// 2) gemini-2.5-flash 실전 설정 확인 (thinking off + 충분한 토큰 → 실제 한글 생성)
-const res = await fetch(
-  `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY}`,
-  {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: '로봇청소기 라이다 센서 고장 증상을 2문장으로 설명해' }] }],
-      generationConfig: { temperature: 0.85, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
-    }),
+const MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-flash-latest', 'gemini-flash-lite-latest'];
+for (const model of MODELS) {
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${KEY}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: '로봇청소기 배터리 교체 방법을 1문장으로' }] }],
+        generationConfig: { temperature: 0.7, maxOutputTokens: 512, thinkingConfig: { thinkingBudget: 0 } },
+      }),
+    }
+  );
+  if (res.ok) {
+    const j = await res.json();
+    const text = j?.candidates?.[0]?.content?.parts?.[0]?.text || '(빈응답)';
+    console.log(`[${model}] ✅ HTTP 200 — ${text.length}자: ${text.slice(0, 50).replace(/\n/g, ' ')}`);
+  } else {
+    const txt = await res.text();
+    const limitMatch = txt.match(/limit:\s*(\d+)/);
+    const metricMatch = txt.match(/metric:\s*[^,]*?\/([a-z_]+)/);
+    console.log(`[${model}] ❌ HTTP ${res.status} limit=${limitMatch?.[1] ?? '?'} metric=${metricMatch?.[1] || '?'}`);
   }
-);
-if (res.ok) {
-  const j = await res.json();
-  const text = j?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  console.log(`[gemini-2.5-flash 실전] HTTP 200 ✅ ${text.length}자`);
-  console.log('  미리보기:', text.slice(0, 120).replace(/\n/g, ' '));
-} else {
-  console.log(`[gemini-2.5-flash 실전] HTTP ${res.status} ❌`, (await res.text()).slice(0, 200));
+  await new Promise(r => setTimeout(r, 1500));
 }

@@ -38,6 +38,10 @@ const DRY   = process.argv.includes('--dry');
 const LIMIT_ARG = process.argv.find(a => a.startsWith('--limit='));
 const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.split('=')[1], 10) : 0;
 
+// 무료 모델 우선순위 — 각 모델은 별도 일일 쿼터 버킷 → 429(일일한도) 시 다음 모델로 회전
+// gemini-2.5-flash 는 이 키에서 일일 20건 한도라 마지막에 배치
+const MODELS = ['gemini-2.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-flash-latest', 'gemini-2.5-flash'];
+
 if (!SUPABASE_URL || !SERVICE_KEY || !GEMINI_KEY) {
   console.error('❌ .env.local에 NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / GEMINI_API_KEY 필요');
   process.exit(1);
@@ -111,28 +115,36 @@ async function generateKo(brand, model, errorCode, solution) {
 
 한국어 수리 가이드:`;
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        // thinkingBudget:0 → 내부 추론에 토큰 낭비 안 함 (빈응답 방지)
-        generationConfig: { temperature: 0.85, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
-      }),
+  let lastErr = '';
+  for (const gModel of MODELS) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${gModel}:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          // thinkingBudget:0 → 내부 추론에 토큰 낭비 안 함 (빈응답 방지)
+          generationConfig: { temperature: 0.85, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
+        }),
+      }
+    );
+
+    if (res.ok) {
+      const j = await res.json();
+      const text = j?.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (text) return text.trim();
+      lastErr = '빈 응답';
+      continue;
     }
-  );
 
-  if (!res.ok) {
     const err = await res.text();
-    throw new Error(`Gemini ${res.status}: ${err.slice(0, 300)}`);
+    lastErr = `${res.status} ${err.slice(0, 80)}`;
+    // 429(일일/분당 한도)면 다음 모델 버킷으로 회전, 그 외 오류는 즉시 중단
+    if (res.status === 429) continue;
+    throw new Error(`Gemini ${lastErr}`);
   }
-
-  const j = await res.json();
-  const text = j?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!text) throw new Error('Gemini 응답 비어있음');
-  return text.trim();
+  throw new Error(`전 모델 소진: ${lastErr}`);
 }
 
 // ── 메인 ──────────────────────────────────────────────────────────────────────
