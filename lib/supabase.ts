@@ -79,3 +79,21 @@ export async function listAllSlugs(): Promise<string[]> {
     return [];
   }
 }
+
+/** Slug + last-modified for sitemap.xml generation */
+export async function listSitemapEntries(): Promise<{ slug: string; updated_at: string }[]> {
+  try {
+    const supabase = getPublicClient();
+    const { data } = await supabase
+      .from('parts_db')
+      .select('slug, updated_at')
+      .order('updated_at', { ascending: false })
+      .limit(2000);
+    return (data || []).map((r: any) => ({
+      slug: String(r.slug),
+      updated_at: String(r.updated_at || new Date().toISOString()),
+    }));
+  } catch {
+    return [];
+  }
+}

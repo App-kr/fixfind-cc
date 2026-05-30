@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { fetchRepairEntries, clampCount, type RepairEntry } from '@/lib/gemini';
 import { findCheapest } from '@/lib/aliexpress';
-import { upsertPart, logSyncRun } from '@/lib/supabase';
+import { upsertPart, logSyncRun, listAllSlugs } from '@/lib/supabase';
 import { makeSlug } from '@/lib/slug';
 
 export const runtime = 'nodejs';
@@ -65,7 +65,8 @@ export async function GET(req: NextRequest) {
   const stats = { entries: 0, upserted: 0, requested: count, errors: [] as string[] };
 
   try {
-    const entries = await fetchRepairEntries(count);
+    const existingSlugs = await listAllSlugs();
+    const entries = await fetchRepairEntries(count, existingSlugs);
     stats.entries = entries.length;
 
     for (const entry of entries) {

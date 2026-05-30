@@ -76,9 +76,28 @@ export async function generateMetadata({
 
   const desc = (row.solution || '').slice(0, 155);
 
+  // SEO keywords — the exact terms people type into Google (EN + KO)
+  const kw = new Set<string>();
+  const bm = `${row.brand} ${row.model}`;
+  kw.add(bm);
+  if (row.error_code) {
+    kw.add(`${bm} ${row.error_code}`);
+    kw.add(`${row.model} ${row.error_code}`);
+    kw.add(`${bm} ${row.error_code} fix`);
+    kw.add(`${row.model} ${row.error_code} 에러`);
+  }
+  kw.add(`${bm} repair`);
+  kw.add(`${bm} not working`);
+  kw.add(`${bm} fix`);
+  kw.add(`${row.model} 수리`);
+  kw.add(`${row.model} 고장`);
+  kw.add(`${row.brand} 로봇청소기 수리`);
+  if (row.part_name) kw.add(row.part_name);
+
   return {
     title,
     description: desc,
+    keywords: [...kw],
     alternates: { canonical: `/${slug}` },
     openGraph: {
       title,

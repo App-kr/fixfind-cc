@@ -1,9 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { makeSlug } from '@/lib/slug';
 
 const MIN_COUNT = 1;
 const MAX_COUNT = 10;
 
-function buildPrompt(count: number): string {
+function buildPrompt(count: number, existingSlugs: string[] = []): string {
+  const dedupeBlock = existingSlugs.length
+    ? `\n\nALREADY PUBLISHED (slug = brand/model[-error]) — DO NOT regenerate any of these; pick DIFFERENT model/error combos:\n${existingSlugs.slice(0, 200).join(', ')}`
+    : '';
   return `You are a senior SEO researcher curating a HIGH-AUTHORITY robot vacuum repair database. Target: English-speaking users who Google exact error codes or symptoms to fix their robot vacuum at home.
 
 Task: Output exactly ${count} distinct ${count === 1 ? 'entry' : 'entries'} covering robot vacuum repair topics with HIGH monthly search volume on Google/YouTube.
@@ -58,9 +62,9 @@ REJECT:
 - Parts costing over $60 aftermarket
 - Firearms, adult, tobacco, vaping, prescription medical
 - Same brand more than 3 times within this batch
-- Duplicate models from previous known entries: irobot/roomba-650, bose/quietcomfort-35, nintendo/switch-joy-con, canon/eos-rebel-t3i, apple/ipod-classic, irobot/roomba-650, gopro/hero-4-black, logitech/g-pro-wireless, samsung/wf42h5000aw, apple/macbook-pro-15-a1398
+- ONLY robot vacuum / robot mop topics — never any other product category
 - New brands allowed: Dreame, Narwal, LG — include these freely
-- brand field for LG models: 'LG', for Dreame: 'Dreame', for Narwal: 'Narwal'
+- brand field for LG models: 'LG', for Dreame: 'Dreame', for Narwal: 'Narwal'${dedupeBlock}
 
 Output ONLY a JSON array of ${count} object${count === 1 ? '' : 's'}. No markdown, no prose, no comments.`;
 }
@@ -95,20 +99,51 @@ export function clampCount(raw: unknown, fallback: number = 1): number {
   return Math.max(MIN_COUNT, Math.min(MAX_COUNT, Math.trunc(n)));
 }
 
-export async function fetchRepairEntries(count: number = 1): Promise<RepairEntry[]> {
+// Free-tier models, each with a SEPARATE daily quota bucket → rotate on 429.
+// gemini-2.5-flash is daily-capped low on this key, so it sits last.
+const GEMINI_MODELS = [
+  'gemini-2.5-flash-lite',
+  'gemini-flash-lite-latest',
+  'gemini-flash-latest',
+  'gemini-2.5-flash',
+];
+
+function isQuotaError(e: any): boolean {
+  const s = `${e?.status || ''} ${e?.message || e || ''}`;
+  return /429|RESOURCE_EXHAUSTED|quota|rate.?limit/i.test(s);
+}
+
+export async function fetchRepairEntries(
+  count: number = 1,
+  existingSlugs: string[] = []
+): Promise<RepairEntry[]> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error('GEMINI_API_KEY missing');
 
   const safeCount = clampCount(count, 1);
-
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({
-    model: 'gemini-2.5-flash',
-    generationConfig: { temperature: 0.85, responseMimeType: 'application/json' }
-  });
+  const prompt = buildPrompt(safeCount, existingSlugs);
 
-  const result = await model.generateContent(buildPrompt(safeCount));
-  const text = result.response.text().trim();
+  let text = '';
+  let lastErr = '';
+  for (const gModel of GEMINI_MODELS) {
+    try {
+      const model = genAI.getGenerativeModel({
+        model: gModel,
+        generationConfig: { temperature: 0.85, responseMimeType: 'application/json' },
+      });
+      const result = await model.generateContent(prompt);
+      text = result.response.text().trim();
+      if (text) break;
+      lastErr = `${gModel}: empty response`;
+    } catch (e: any) {
+      lastErr = `${gModel}: ${e?.message || String(e)}`;
+      if (isQuotaError(e)) continue; // next quota bucket
+      throw new Error(`Gemini ${lastErr}`);
+    }
+  }
+  if (!text) throw new Error(`Gemini all models exhausted (${lastErr})`);
+
   const cleaned = text.replace(/^```(?:json)?\s*|\s*```$/g, '').trim();
 
   let parsed: unknown;
@@ -120,9 +155,14 @@ export async function fetchRepairEntries(count: number = 1): Promise<RepairEntry
   if (!Array.isArray(parsed)) throw new Error('Gemini response not an array');
 
   const out: RepairEntry[] = [];
+  const seen = new Set(existingSlugs);
   for (const e of parsed) {
     const s = sanitize(e);
-    if (s) out.push(s);
+    if (!s) continue;
+    const slug = makeSlug(s.brand, s.model, s.error_code);
+    if (seen.has(slug)) continue; // skip already-published combos
+    seen.add(slug);
+    out.push(s);
     if (out.length >= safeCount) break;
   }
   if (out.length === 0) throw new Error('Gemini returned 0 valid entries');
