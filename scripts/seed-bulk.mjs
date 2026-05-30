@@ -40,32 +40,47 @@ if (!secret) {
 
 async function seedBatch(batchNum, count = 10) {
   const url = `${baseUrl}/api/cron/sync?count=${count}`;
-  console.log(`\n[Batch ${batchNum}] POST ${url}`);
+  console.log(`\n[Batch ${batchNum}] GET ${url}`);
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${secret}` },
   });
   const body = await res.json();
   if (body.ok) {
-    console.log(`  ✅ upserted=${body.upserted_count}/${body.entries_count}`);
-    if (body.errors?.length) console.log(`  ⚠️  errors:`, body.errors);
+    // route returns { upserted, entries } (logSyncRun uses *_count internally)
+    const up = body.upserted ?? body.upserted_count ?? 0;
+    const en = body.entries ?? body.entries_count ?? 0;
+    console.log(`  ✅ upserted=${up}/${en}`);
+    // Only non-AliExpress errors matter (ali key missing is expected until configured)
+    const realErrors = (body.errors || []).filter((e) => !/ ali: /.test(e));
+    if (realErrors.length) console.log(`  ⚠️  errors:`, realErrors);
+    body.upserted_count = up; // normalize for caller
   } else {
     console.error(`  ❌ failed:`, body.error || body);
   }
   return body;
 }
 
-const BATCHES = 5;   // 5 × 10 = 50 new entries
+// CLI: --batches=N --count=M  (defaults 5 × 10 = 50)
+const arg = (name, def) => {
+  const a = process.argv.find((x) => x.startsWith(`--${name}=`));
+  return a ? parseInt(a.split('=')[1], 10) : def;
+};
+const BATCHES = arg('batches', 5);
+const PER = arg('count', 10);
 const DELAY_MS = 4000; // 4s between batches to be polite to Gemini
 
-console.log(`Seeding ${BATCHES} batches of 10 entries = up to 50 new entries`);
+console.log(`Seeding ${BATCHES} batches of ${PER} entries = up to ${BATCHES * PER} new entries`);
 console.log(`Target: ${baseUrl}`);
 
+let totalUpserted = 0;
 for (let i = 1; i <= BATCHES; i++) {
-  await seedBatch(i);
+  const body = await seedBatch(i, PER);
+  totalUpserted += body?.upserted_count || 0;
   if (i < BATCHES) {
     console.log(`  Waiting ${DELAY_MS / 1000}s...`);
     await new Promise((r) => setTimeout(r, DELAY_MS));
   }
 }
+console.log(`\nTotal upserted this run: ${totalUpserted}`);
 
 console.log('\nDone! Check https://fixfind.cc or your Supabase dashboard.');

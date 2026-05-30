@@ -37,8 +37,9 @@ const FORCE = process.argv.includes('--force');
 const DRY   = process.argv.includes('--dry');
 const LIMIT_ARG = process.argv.find(a => a.startsWith('--limit='));
 const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.split('=')[1], 10) : 0;
-const SHORT = process.argv.includes('--short'); // 짧거나 잘린 가이드(<200자)도 재생성
-const MIN_LEN = 200;
+const SHORT = process.argv.includes('--short'); // 짧거나 잘린 가이드도 재생성
+const MIN_LEN_ARG = process.argv.find(a => a.startsWith('--min='));
+const MIN_LEN = MIN_LEN_ARG ? parseInt(MIN_LEN_ARG.split('=')[1], 10) : 320; // 이 길이 미만이면 재생성
 
 // 무료 모델 우선순위 — 각 모델은 별도 일일 쿼터 버킷 → 429(일일한도) 시 다음 모델로 회전
 // gemini-2.5-flash 는 이 키에서 일일 20건 한도라 마지막에 배치
