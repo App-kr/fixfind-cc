@@ -35,6 +35,8 @@ const SERVICE_KEY  = env.SUPABASE_SERVICE_ROLE_KEY;
 const GEMINI_KEY   = env.GEMINI_API_KEY;
 const FORCE = process.argv.includes('--force');
 const DRY   = process.argv.includes('--dry');
+const LIMIT_ARG = process.argv.find(a => a.startsWith('--limit='));
+const LIMIT = LIMIT_ARG ? parseInt(LIMIT_ARG.split('=')[1], 10) : 0;
 
 if (!SUPABASE_URL || !SERVICE_KEY || !GEMINI_KEY) {
   console.error('❌ .env.local에 NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY / GEMINI_API_KEY 필요');
@@ -116,7 +118,8 @@ async function generateKo(brand, model, errorCode, solution) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.85, maxOutputTokens: 800 },
+        // thinkingBudget:0 → 내부 추론에 토큰 낭비 안 함 (빈응답 방지)
+        generationConfig: { temperature: 0.85, maxOutputTokens: 2048, thinkingConfig: { thinkingBudget: 0 } },
       }),
     }
   );
@@ -152,9 +155,10 @@ if (!Array.isArray(articles)) {
   process.exit(1);
 }
 
-const todo = articles.filter(a => FORCE || !a.solution_ko);
+const base = articles.filter(a => FORCE || !a.solution_ko);
+const todo = LIMIT > 0 ? base.slice(0, LIMIT) : base;
 
-console.log(`전체 조회: ${articles.length}개 / 처리 예정: ${todo.length}개\n`);
+console.log(`전체 조회: ${articles.length}개 / 처리 예정: ${todo.length}개${LIMIT > 0 ? ` (--limit=${LIMIT})` : ''}\n`);
 
 if (todo.length === 0) {
   console.log('✅ 모든 게시물에 이미 한글 가이드가 있습니다!');
@@ -162,7 +166,7 @@ if (todo.length === 0) {
 }
 
 let done = 0, failed = 0;
-const DELAY_MS = DRY ? 50 : 1500; // Gemini 레이트리밋 방지 (1.5초)
+const DELAY_MS = DRY ? 50 : 6500; // gemini-2.5-flash 무료 10 RPM → 6.5초 간격
 
 for (const article of todo) {
   const label = `[ID ${String(article.id).padStart(3)}] ${article.brand} ${article.model}`;
