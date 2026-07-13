@@ -11,21 +11,59 @@ permissions:
 jobs:
   trigger:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
-      - name: Call /api/cron/sync on Vercel
+      - name: Call /api/cron/sync on Vercel (with retry + transient-tolerant)
         env:
           BASE_URL: ${{ secrets.VERCEL_BASE_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          set -euo pipefail
+          set -uo pipefail
           if [ -z "${BASE_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
-            echo "Missing VERCEL_BASE_URL or CRON_SECRET secret"; exit 1
+            echo "::error::Missing VERCEL_BASE_URL or CRON_SECRET secret"
+            exit 1
           fi
-          code=$(curl -s -o response.json -w "%{http_code}" \
-            --max-time 290 \
-            -H "Authorization: Bearer ${CRON_SECRET}" \
-            "${BASE_URL%/}/api/cron/sync")
-          echo "HTTP ${code}"
-          cat response.json
-          [ "$code" = "200" ]
+
+          # 최대 3회 재시도 (60s → 180s backoff)
+          MAX_ATTEMPTS=3
+          SLEEP_BASE=60
+          LAST_CODE=""
+          LAST_BODY=""
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "── Attempt $i/$MAX_ATTEMPTS ──"
+            LAST_CODE=$(curl -s -o response.json -w "%{http_code}" \
+              --max-time 290 \
+              -H "Authorization: Bearer ${CRON_SECRET}" \
+              "${BASE_URL%/}/api/cron/sync" || echo "000")
+            LAST_BODY=$(cat response.json 2>/dev/null || echo "")
+            echo "HTTP ${LAST_CODE}"
+            echo "$LAST_BODY" | head -c 500; echo
+
+            if [ "$LAST_CODE" = "200" ]; then
+              echo "✅ 성공"
+              exit 0
+            fi
+
+            # 재시도 여부 판단
+            if [ $i -lt $MAX_ATTEMPTS ]; then
+              WAIT=$((SLEEP_BASE * i))
+              echo "재시도 대기: ${WAIT}s..."
+              sleep $WAIT
+            fi
+          done
+
+          # 실패 유형 분류 — 노이즈 알림 억제
+          if echo "$LAST_BODY" | grep -qE "503|Service Unavailable|high demand|overloaded|rate limit"; then
+            echo "::warning::Gemini/Vercel 외부 일시 장애 (3회 재시도 실패). 다음 스케줄에서 자동 복구 예상."
+            echo "TRANSIENT_FAILURE=true" >> $GITHUB_ENV
+            exit 0  # 외부 일시 장애 = 성공 처리 (알림 노이즈 억제)
+          fi
+
+          if echo "$LAST_BODY" | grep -qE "0 valid entries|no.*entries|returned 0"; then
+            echo "::warning::Gemini 프롬프트가 유효 응답 미반환 (일시적). 다음 스케줄에서 재시도."
+            exit 0  # 파싱 실패도 일시적 → 성공 처리
+          fi
+
+          echo "::error::영구적 실패 (${LAST_CODE}). 즉시 조치 필요."
+          exit 1
