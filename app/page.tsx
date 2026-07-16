@@ -76,20 +76,20 @@ export default async function Home() {
           수리 가이드 · 에러코드 · 교체 부품
         </p>
 
-        {/* Main headline */}
+        {/* Main headline — 키워드형 H1 */}
         <h1
           className="hero-line hero-line-2"
           style={{
-            fontSize: 'clamp(64px, 13vw, 148px)',
+            fontSize: 'clamp(40px, 8vw, 92px)',
             fontWeight: 800,
             letterSpacing: '-0.04em',
-            lineHeight: 0.95,
+            lineHeight: 1.02,
             color: '#1d1d1f',
             margin: '0 auto 28px',
             maxWidth: '960px',
           }}
         >
-          Fix&nbsp;whatever.
+          로봇청소기 수리 가이드
         </h1>
 
         {/* Sub */}
@@ -209,7 +209,9 @@ export default async function Home() {
                           margin: 0,
                         }}
                       >
-                        {brand}
+                        <a href={`/${items[0].slug.split('/')[0]}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                          {brand} 로봇청소기 수리
+                        </a>
                       </h2>
                       <span
                         style={{
