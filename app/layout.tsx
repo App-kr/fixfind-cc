@@ -9,6 +9,21 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const GOOGLE_VERIFY = process.env.GOOGLE_SITE_VERIFICATION;
 const NAVER_VERIFY = process.env.NAVER_SITE_VERIFICATION;
 
+// 브랜드 허브 (전역 footer 내부링크) — slug 세그먼트 기준
+const BRAND_HUBS = [
+  { seg: 'roborock', label: '로보락' },
+  { seg: 'irobot', label: '아이로봇 룸바' },
+  { seg: 'ecovacs', label: '에코백스' },
+  { seg: 'dreame', label: '드리미' },
+  { seg: 'narwal', label: '나르왈' },
+  { seg: 'samsung', label: '삼성' },
+  { seg: 'lg', label: 'LG' },
+  { seg: 'xiaomi', label: '샤오미' },
+  { seg: 'eufy', label: '유피' },
+  { seg: 'shark', label: '샤크' },
+  { seg: 'neato', label: '네이토' },
+];
+
 // 검색엔진 소유확인(verification) — 값이 있을 때만 태그 출력
 const verification: Metadata['verification'] = {};
 if (GOOGLE_VERIFY) verification.google = GOOGLE_VERIFY;
@@ -135,6 +150,24 @@ gtag('config', '${GA_ID}');`}
               borderTop: '0.5px solid #d2d2d7',
             }}
           >
+            {/* 브랜드별 수리 가이드 — 사이트 전역 내부링크 (크롤링 강화) */}
+            <nav aria-label="브랜드별 수리 가이드" style={{ marginBottom: '24px' }}>
+              <p style={{ fontSize: '13px', fontWeight: 600, color: '#1d1d1f', marginBottom: '10px' }}>
+                브랜드별 로봇청소기 수리 가이드
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px 18px' }}>
+                {BRAND_HUBS.map((b) => (
+                  <a
+                    key={b.seg}
+                    href={`/${b.seg}`}
+                    style={{ fontSize: '13px', color: '#0071e3', textDecoration: 'none' }}
+                  >
+                    {b.label} 수리
+                  </a>
+                ))}
+              </div>
+            </nav>
+
             <p style={{ fontSize: '12px', color: '#6e6e73', lineHeight: '1.8', marginBottom: '8px' }}>
               Copyright &copy; 2025 fixfind. All rights reserved.
             </p>
@@ -143,6 +176,26 @@ gtag('config', '${GA_ID}');`}
             </p>
           </div>
         </footer>
+
+        {/* 사이트 구조화 데이터 */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              '@context': 'https://schema.org',
+              '@type': 'WebSite',
+              name: 'fixfind',
+              alternateName: '로봇청소기 수리 가이드',
+              url: SITE_URL,
+              inLanguage: 'ko',
+              publisher: {
+                '@type': 'Organization',
+                name: 'fixfind',
+                url: SITE_URL,
+              },
+            }),
+          }}
+        />
       </body>
     </html>
   );
