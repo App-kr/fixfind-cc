@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
-import { getPublicClient } from '@/lib/supabase';
+import { getPublicClient, listAllSlugs } from '@/lib/supabase';
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -18,19 +18,34 @@ type Row = {
   slug: string;
 };
 
+/** 정규 세그먼트만 허용 — 대소문자 변형(/IROBOT)·LIKE 와일드카드(_ %)로
+ *  중복 URL 이 무한 생성되는 것을 막는다. */
+function isCanonicalSeg(seg: string): boolean {
+  return /^[a-z0-9-]+$/.test(seg);
+}
+
 async function fetchBrandRows(brandSeg: string): Promise<Row[]> {
-  try {
-    const supabase = getPublicClient();
-    const { data } = await supabase
-      .from('parts_db')
-      .select('id, brand, model, error_code, part_name, slug')
-      .ilike('slug', `${brandSeg}/%`)
-      .order('model', { ascending: true })
-      .limit(500);
-    return (data || []) as Row[];
-  } catch {
-    return [];
+  const supabase = getPublicClient();
+  const { data, error } = await supabase
+    .from('parts_db')
+    .select('id, brand, model, error_code, part_name, slug')
+    .like('slug', `${brandSeg}/%`)
+    .order('model', { ascending: true })
+    .limit(500);
+  // 에러를 빈 배열로 뭉개면 notFound() → 404 로 색인이 삭제된다. 에러는 throw(500).
+  if (error) throw new Error(`fetchBrandRows failed for ${brandSeg}: ${error.message}`);
+  return (data || []) as Row[];
+}
+
+/** 브랜드 허브도 정적 생성 대상에 포함 */
+export async function generateStaticParams(): Promise<Params[]> {
+  const slugs = await listAllSlugs();
+  const segs = new Set<string>();
+  for (const s of slugs) {
+    const seg = s.split('/')[0];
+    if (seg && isCanonicalSeg(seg)) segs.add(seg);
   }
+  return [...segs].map((brand) => ({ brand }));
 }
 
 /** 브랜드 표시명 (DB brand 컬럼 우선, 없으면 세그먼트 캐피탈라이즈) */
@@ -40,6 +55,7 @@ function displayBrand(rows: Row[], seg: string): string {
 
 export async function generateMetadata({ params }: { params: Promise<Params> }): Promise<Metadata> {
   const { brand } = await params;
+  if (!isCanonicalSeg(brand)) return { title: '페이지를 찾을 수 없습니다' };
   const rows = await fetchBrandRows(brand);
   const name = displayBrand(rows, brand);
   const title = `${name} 로봇청소기 수리 가이드 — 에러코드·부품 교체`;
@@ -54,6 +70,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 export default async function BrandHub({ params }: { params: Promise<Params> }) {
   const { brand } = await params;
+  // 비정규 세그먼트(/IROBOT, /irobo_)는 중복 URL 이므로 색인시키지 않는다
+  if (!isCanonicalSeg(brand)) notFound();
   const rows = await fetchBrandRows(brand);
   if (rows.length === 0) notFound();
 

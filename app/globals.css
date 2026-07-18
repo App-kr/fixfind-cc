@@ -31,9 +31,12 @@ body { background: #ffffff; color: #1d1d1f; }
   to   { opacity: 1; }
 }
 
-/* Hero text stagger */
+/* Hero text stagger
+   SEO: 기본 opacity 를 1 로 둔다. 애니메이션을 실행하지 않거나 완료 전에
+   스냅샷하는 렌더러(크롤러)에서도 H1 이 반드시 보이게 하기 위함.
+   애니메이션은 그대로 재생되므로 사용자 경험은 동일. */
 .hero-line {
-  opacity: 0;
+  opacity: 1;
   animation: fadeUp 0.9s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 .hero-line-1 { animation-delay: 0.05s; }
@@ -41,9 +44,11 @@ body { background: #ffffff; color: #1d1d1f; }
 .hero-line-3 { animation-delay: 0.35s; }
 
 /* Scroll-triggered sections (set by JS) */
+/* SEO: 기본은 항상 보이게. Googlebot은 스크롤하지 않으므로 opacity:0 로 두면
+   본문(브랜드 섹션/카드 전체)이 렌더 스냅샷에서 숨겨진 채로 남는다. */
 .reveal {
-  opacity: 0;
-  transform: translateY(40px);
+  opacity: 1;
+  transform: none;
   transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
               transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
 }

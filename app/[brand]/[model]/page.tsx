@@ -1,4 +1,3 @@
-import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { getPublicClient, listAllSlugs } from '@/lib/supabase';
@@ -35,23 +34,27 @@ type RelatedRow = {
   slug: string;
 };
 
+/**
+ * SEO 중요: DB 에러와 "행 없음"을 반드시 구분한다.
+ * 에러까지 null 로 뭉개면 notFound() → 404 가 되어, Supabase 일시장애 때
+ * 전 페이지가 404 로 응답하고 구글이 색인에서 URL 을 제거해버린다.
+ * 에러는 throw → 500 이어야 구글이 재시도한다.
+ */
 async function fetchPart(slug: string): Promise<Row | null> {
-  try {
-    const supabase = getPublicClient();
-    const { data } = await supabase
-      .from('parts_db')
-      .select('*')
-      .eq('slug', slug)
-      .limit(1)
-      .maybeSingle();
-    return (data as Row) || null;
-  } catch {
-    return null;
-  }
+  const supabase = getPublicClient();
+  const { data, error } = await supabase
+    .from('parts_db')
+    .select('*')
+    .eq('slug', slug)
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`fetchPart failed for ${slug}: ${error.message}`);
+  return (data as Row) || null;
 }
 
 /** 같은 브랜드의 다른 수리 가이드 (내부링크용) */
 async function fetchRelated(brandSeg: string, currentSlug: string): Promise<RelatedRow[]> {
+  // 관련링크는 부가 요소 → 실패해도 본문은 살린다 (여기서는 삼키는 게 맞음)
   try {
     const supabase = getPublicClient();
     const { data } = await supabase
@@ -149,20 +152,22 @@ export default async function Page({ params }: { params: Promise<Params> }) {
   const row = await fetchPart(slug);
   if (!row) notFound();
 
-  // Admin mode: show ad slot outlines
-  const cookieStore = await cookies();
-  const isAdmin = !!cookieStore.get('ff_admin')?.value;
-
   const productImage = getProductImage(row.brand, slug);
   const galleryImages = getGalleryImages(row.brand, slug);
   const serviceCenter = getServiceCenter(row.brand);
   const enSteps = parseSteps(row.solution || '');
   const hasKorean = !!row.solution_ko;
-  const koSteps = hasKorean ? parseStepsKo(row.solution_ko!) : enSteps;
+  const koStepsRaw = hasKorean ? parseStepsKo(row.solution_ko!) : enSteps;
+  // 문장 분해 실패(마침표 없는 한 덩어리) 시 빈 <ol>/빈 HowTo.step 방지
+  const koSteps = koStepsRaw.length > 0
+    ? koStepsRaw
+    : [row.solution_ko || row.solution || ''].filter(Boolean);
   const related = await fetchRelated(brand, slug);
 
   // ── 구조화 데이터 ─────────────────────────────────────────
-  const howToSchema = {
+  // 주: FAQPage 는 2026-05 구글 리치결과에서 폐지 + 본문과 답변 불일치는
+  //     가이드라인 위반 리스크만 남으므로 제거. Article/Breadcrumb 중심으로 유지.
+  const howToSchema = koSteps.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'HowTo',
     name: row.error_code
@@ -170,30 +175,21 @@ export default async function Page({ params }: { params: Promise<Params> }) {
       : `${row.brand} ${row.model} 수리 가이드`,
     description: (row.solution_ko || row.solution || '').slice(0, 300),
     inLanguage: 'ko',
-    supply: row.part_name ? [{ '@type': 'HowToSupply', name: row.part_name }] : [],
+    ...(row.part_name ? { supply: [{ '@type': 'HowToSupply', name: row.part_name }] } : {}),
     step: koSteps.map((s, i) => ({ '@type': 'HowToStep', position: i + 1, name: `${i + 1}단계`, text: s })),
-  };
+  } : null;
 
-  const faqSchema = {
+  const articleSchema = {
     '@context': 'https://schema.org',
-    '@type': 'FAQPage',
-    mainEntity: [
-      {
-        '@type': 'Question',
-        name: row.error_code
-          ? `${row.brand} ${row.model} ${row.error_code}는 무슨 에러인가요?`
-          : `${row.brand} ${row.model} 고장은 어떻게 수리하나요?`,
-        acceptedAnswer: { '@type': 'Answer', text: row.solution_ko || row.solution || '' },
-      },
-      ...(row.part_name ? [{
-        '@type': 'Question',
-        name: `어떤 교체 부품이 필요한가요?`,
-        acceptedAnswer: {
-          '@type': 'Answer',
-          text: `${row.part_name}이(가) 필요합니다. 알리익스프레스·쿠팡 등에서 호환 부품을 보통 1만~5만 원 선에 구매할 수 있습니다.`,
-        },
-      }] : []),
-    ],
+    '@type': 'TechArticle',
+    headline: row.error_code
+      ? `${row.brand} ${row.model} ${row.error_code} 에러 수리방법`
+      : `${row.brand} ${row.model} 수리 가이드`,
+    description: (row.solution_ko || row.solution || '').slice(0, 300),
+    inLanguage: 'ko',
+    dateModified: row.updated_at,
+    mainEntityOfPage: { '@type': 'WebPage', '@id': `${SITE_URL}/${slug}` },
+    publisher: { '@type': 'Organization', name: 'fixfind', url: SITE_URL },
   };
 
   const breadcrumbSchema = {
@@ -208,8 +204,10 @@ export default async function Page({ params }: { params: Promise<Params> }) {
 
   return (
     <main className="mx-auto max-w-4xl px-4 py-8">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }} />
+      {howToSchema && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(howToSchema) }} />
+      )}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }} />
 
       {/* Breadcrumb — 브랜드는 허브로 연결 */}
@@ -339,14 +337,6 @@ export default async function Page({ params }: { params: Promise<Params> }) {
         {row.part_name && <p className="text-gray-900 font-semibold mb-3 text-sm">{row.part_name}</p>}
         <AffiliateCTA href={row.affiliate_url} price={row.affiliate_price} partName={row.part_name || 'part'} searchKeyword={`${row.brand} ${row.model} ${row.part_name || ''}`} />
       </section>
-
-      {/* Ad slot — admin visible only */}
-      {isAdmin && (
-        <div className="my-6 flex items-center justify-center rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 text-xs text-blue-500 font-semibold"
-             style={{ minHeight: 80 }}>
-          📢 Admin: Ad Slot — article-mid
-        </div>
-      )}
 
       {/* 자주 묻는 질문 */}
       <section className="mb-10">
@@ -486,14 +476,6 @@ export default async function Page({ params }: { params: Promise<Params> }) {
             ))}
           </ol>
         </section>
-      )}
-
-      {/* Bottom ad — admin only */}
-      {isAdmin && (
-        <div className="my-6 flex items-center justify-center rounded-xl border-2 border-dashed border-blue-400 bg-blue-50 text-xs text-blue-500 font-semibold"
-             style={{ minHeight: 80 }}>
-          📢 Admin: Ad Slot — article-bottom
-        </div>
       )}
 
       <footer className="text-xs text-gray-400 mt-8 pt-4 border-t border-gray-100">

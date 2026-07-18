@@ -74,7 +74,9 @@ export async function GET(req: NextRequest) {
     }
 
     revalidatePath('/');
+    revalidatePath('/[brand]', 'page');          // 브랜드 허브
     revalidatePath('/[brand]/[model]', 'page');
+    revalidatePath('/sitemap.xml');              // 신규 URL 즉시 sitemap 반영
 
     await logSyncRun({
       entries_count: stats.entries,
